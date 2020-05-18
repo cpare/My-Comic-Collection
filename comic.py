@@ -50,9 +50,9 @@ for comic_num in sheet.iterrows():
     try:
         # Get the Comic
         comic = comic_num[1].to_list()
-               
-        if np.isnan(comic_num[1][9]) :
-            print("No link provided, searching for a match")
+        url = str(comic_num[1][9])
+        if url == 'nan' :
+            print("No direct link provided, searching for a match")
             # Navigating to search page
             if(driver.current_url != "https://comicspriceguide.com/Search"):
                 driver.get("https://comicspriceguide.com/Search")
@@ -115,7 +115,8 @@ for comic_num in sheet.iterrows():
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
         else:
-            print("Link Exists")
+            print("In Else")
+            print("using provided URL: " + comic_num[1][9])
             comic_link = comic_num[1][9]
 
         # Goto the comic page if result is found.
@@ -151,7 +152,8 @@ for comic_num in sheet.iterrows():
         cover_price = basic_info[2] if basic_info[2] != " ADD" else "Unknown"   
 
         priceTable = soup.find(name='table',attrs={"id":"pricetable"})
-
+        
+        value = ""
         for td in priceTable.find_all('td'):
             if(cgc == "Yes"):
                 id = 'lblGraded' + str(grade).replace('.','')
@@ -166,10 +168,8 @@ for comic_num in sheet.iterrows():
         url_link = driver.current_url
 
         # Uncomment below to debug
-# =============================================================================
-#         print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
-#               published,comic_age,cover_price,value,characters_info,story)
-# =============================================================================
+        print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
+              published,comic_age,cover_price,value,characters_info,story)
 
         # Data to be put into excel file
         dfResults = dfResults.append({'title' : title,
@@ -207,7 +207,9 @@ for comic_num in sheet.iterrows():
         driver.get("https://comicspriceguide.com/Search")
         continue
 
-sheetname = date.today().strftime("%Y-%m-%d")
-with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
-    dfResults.to_excel(writer, sheet_name=sheetname)
+# =============================================================================
+# sheetname = date.today().strftime("%Y-%m-%d")
+# with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
+#     dfResults.to_excel(writer, sheet_name=sheetname)
+# =============================================================================
 print("Work is complete.")
