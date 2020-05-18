@@ -115,7 +115,6 @@ for comic_num in sheet.iterrows():
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
         else:
-            print("In Else")
             print("using provided URL: " + comic_num[1][9])
             comic_link = comic_num[1][9]
 
