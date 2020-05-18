@@ -168,8 +168,10 @@ for comic_num in sheet.iterrows():
         url_link = driver.current_url
 
         # Uncomment below to debug
-        print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
-              published,comic_age,cover_price,value,characters_info,story)
+# =============================================================================
+#         print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
+#               published,comic_age,cover_price,value,characters_info,story)
+# =============================================================================
 
         # Data to be put into excel file
         dfResults = dfResults.append({'title' : title,
