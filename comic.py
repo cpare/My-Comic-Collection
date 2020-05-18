@@ -105,6 +105,8 @@ for comic_num in sheet.iterrows():
     
             # Link of the comic.
             comic_link = ''
+            
+            percentage = 0
     
             # Check for all the hyperlinks on the results page which lead to the comic
             for link in soup.find_all('a', attrs={'class':'grid_issue'}):
@@ -118,6 +120,8 @@ for comic_num in sheet.iterrows():
                     similarity = similar(a,comic[-1])
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
+            if percentage > 0
+                print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
         else:
             print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - " + str(comic_num[1][9]))
             comic_link = comic_num[1][9]
@@ -130,7 +134,7 @@ for comic_num in sheet.iterrows():
 
 
         # Wait 5 seconds for page to load and get its source code
-        time.sleep(5)
+        time.sleep(2)
         source_code = driver.page_source
 
         # New BS4 Instance with the comic's page's source code
@@ -200,7 +204,7 @@ for comic_num in sheet.iterrows():
 
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
-            print("     Unable to find Match for " + ve.args[2] + " #" + ve.args[3])
+            print("     Unable to find Match for " + str(ve.args[2]) + " #" + str(ve.args[3]))
             dfResults = dfResults.append({'title' : comic_num[1][1],
                                           'issue' : comic_num[1][3],
                                           'grade' : comic_num[1][4],
