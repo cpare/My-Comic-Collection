@@ -142,6 +142,7 @@ for comic_num in sheet.iterrows():
         notes = soup.find('span',attrs = {'id':'spQComment'}).text
         price_paid = "$" + (str(comic[7]) if str(comic[7]) != None else "0")
         keyIssue = "Yes" if "Key Issue" in soup.text else "No"
+        image = soup.find('img',attrs={'id':'imgCoverMn'})['src']
         basic_info = []
         for s in soup.find_all('div',attrs={"class":"m-0 f-12"}):
             basic_info.append(s.parent.find('span',attrs={"class":"f-11"}).text.replace("   ", " "))
