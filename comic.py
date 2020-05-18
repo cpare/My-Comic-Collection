@@ -209,9 +209,7 @@ for comic_num in sheet.iterrows():
         driver.get("https://comicspriceguide.com/Search")
         continue
 
-# =============================================================================
-# sheetname = date.today().strftime("%Y-%m-%d")
-# with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
-#     dfResults.to_excel(writer, sheet_name=sheetname)
-# =============================================================================
+sheetname = date.today().strftime("%Y-%m-%d")
+with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
+    dfResults.to_excel(writer, sheet_name=sheetname)
 print("Work is complete.")
