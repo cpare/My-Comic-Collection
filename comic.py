@@ -25,7 +25,7 @@ sheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name='My Collection')
 dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
                                     'volume','published','keyIssue','price_paid',
                                     'cover_price','value','comic_age','notes',
-                                    'characters_info','story','url_link'])
+                                    'characters_info','story','url_link','img'])
 
 driver.get("https://comicspriceguide.com/login")
 
@@ -189,7 +189,10 @@ for comic_num in sheet.iterrows():
                                       'notes':notes,
                                       'characters_info':characters_info,
                                       'story':story,
-                                      'url_link':url_link}, ignore_index=True)
+                                      'url_link':url_link,
+                                      'img':image
+                                      },
+                                      ignore_index=True)
 
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
