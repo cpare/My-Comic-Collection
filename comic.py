@@ -10,12 +10,16 @@ import pandas as pd
 import sys
 import xlrd
 import numpy as np
+from IPython.display import Image, HTML
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
+def path_to_image_html(path):
+    return '<img src="'+ path + '"/>'
+
 driver = webdriver.Chrome()
-driver.maximize_window()
+#driver.maximize_window()
 
 ExcelWorkbookName = 'Comics.xlsx'
 
@@ -44,7 +48,7 @@ input_login_password.send_keys("iforgotit!")
 driver.execute_script("arguments[0].click();",button_login_submit)
 
 # Waiting time for page to load.
-time.sleep(10)
+time.sleep(5)
 
 for comic_num in sheet.iterrows():
     try:
@@ -52,7 +56,7 @@ for comic_num in sheet.iterrows():
         comic = comic_num[1].to_list()
         url = str(comic_num[1][9])
         if url == 'nan' :
-            print("No direct link provided, searching for a match")
+            print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - Searching...")
             # Navigating to search page
             if(driver.current_url != "https://comicspriceguide.com/Search"):
                 driver.get("https://comicspriceguide.com/Search")
@@ -88,7 +92,7 @@ for comic_num in sheet.iterrows():
             driver.execute_script("arguments[0].click();",button_search_submit)
     
             # Wait for 20 seconds for results to show up
-            time.sleep(12)
+            time.sleep(6)
     
             # Source Code of the search result page.
             source_code = driver.page_source
@@ -115,7 +119,7 @@ for comic_num in sheet.iterrows():
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
         else:
-            print("using provided URL: " + comic_num[1][9])
+            print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - " + str(comic_num[1][9]))
             comic_link = comic_num[1][9]
 
         # Goto the comic page if result is found.
@@ -190,13 +194,13 @@ for comic_num in sheet.iterrows():
                                       'characters_info':characters_info,
                                       'story':story,
                                       'url_link':url_link,
-                                      'img':image
+                                      'img':path_to_image_html(image)
                                       },
                                       ignore_index=True)
 
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
-            print("ERROR!!!\n",ve.args[1],"\nTitle :",ve.args[2],"\nIssue :",ve.args[3])
+            print("     Unable to find Match for " + ve.args[2] + " #" + ve.args[3])
             dfResults = dfResults.append({'title' : comic_num[1][1],
                                           'issue' : comic_num[1][3],
                                           'grade' : comic_num[1][4],
@@ -215,4 +219,9 @@ for comic_num in sheet.iterrows():
 sheetname = date.today().strftime("%Y-%m-%d")
 with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
     dfResults.to_excel(writer, sheet_name=sheetname)
+    df = HTML(dfResults.to_html(escape=False))
+    
+    with open("comics.html",'w') as f:
+        f.write(df.data)
+
 print("Work is complete.")
