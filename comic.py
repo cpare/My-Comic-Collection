@@ -9,7 +9,7 @@ from datetime import date
 import pandas as pd
 import sys
 import xlrd
-import numpy
+import numpy as np
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
@@ -48,67 +48,75 @@ time.sleep(10)
 
 for comic_num in sheet.iterrows():
     try:
-        # Navigating to search page
-        if(driver.current_url != "https://comicspriceguide.com/Search"):
-            driver.get("https://comicspriceguide.com/Search")
-
-        # Wait for the search page to load.
-        driver.implicitly_wait(30)
-
-        # The Search elements.
-        input_search_title = driver.find_element_by_id("search")
-        input_search_issue = driver.find_element_by_id("issueNu")
-        button_search_submit = driver.find_element_by_id("btnSearch")
-
         # Get the Comic
         comic = comic_num[1].to_list()
-                
-        # Appending the title to the end of list. Example, "The Amazing Spider-Man #101"
-        comic.append(comic[1].upper() + " #" + str(comic[3]))
-
-        # This is to convert "101.0" to just "101"
-        if isinstance(comic[3], float):
-            comic[3] = int(comic[3])
-
-        # Input the search parameters.
-        input_search_title.send_keys(str(comic[1]))
-        time.sleep(1)
-
-        # If the issue of the comic has any alphabet in it, then remove it and then search.
-        if not str(comic[3]).isdigit(): 
-            input_search_issue.send_keys(str(comic[3][:-1]))
-        else: 
-            input_search_issue.send_keys(str(comic[3]))
-        time.sleep(1)
-        driver.execute_script("arguments[0].click();",button_search_submit)
-
-        # Wait for 20 seconds for results to show up
-        time.sleep(12)
-
-        # Source Code of the search result page.
-        source_code = driver.page_source
-
-        # Instantiate BS4 using the source code.
-        soup = bs4.BeautifulSoup(source_code,'html.parser')
-
-        # Initial similarity. This similarity is between the given title and the hyperlink comic.
-        similarity = 0
-
-        # Link of the comic.
-        comic_link = ''
-
-        # Check for all the hyperlinks on the results page which lead to the comic
-        for link in soup.find_all('a', attrs={'class':'grid_issue'}):
-
-            # Replace the superscript "#" in the comic name
-            a = str(link.text).replace("<sup>#</sup>","#")
-
-            # Check for similarity between the hyperlink comic and my comic title. If more,
-            percentage = similar(a,comic[-1])
-            if percentage > similarity:
-                similarity = similar(a,comic[-1])
-                final_link = 'https://comicspriceguide.com' + str(link["href"])
-                comic_link = final_link
+               
+        if np.isnan(comic_num[1][9]) :
+            print("No link provided, searching for a match")
+            # Navigating to search page
+            if(driver.current_url != "https://comicspriceguide.com/Search"):
+                driver.get("https://comicspriceguide.com/Search")
+    
+            # Wait for the search page to load.
+            driver.implicitly_wait(30)
+    
+            # The Search elements.
+            input_search_title = driver.find_element_by_id("search")
+            input_search_issue = driver.find_element_by_id("issueNu")
+            button_search_submit = driver.find_element_by_id("btnSearch")
+    
+            # Get the Comic
+            comic = comic_num[1].to_list()
+                    
+            # Appending the title to the end of list. Example, "The Amazing Spider-Man #101"
+            comic.append(comic[1].upper() + " #" + str(comic[3]))
+    
+            # This is to convert "101.0" to just "101"
+            if isinstance(comic[3], float):
+                comic[3] = int(comic[3])
+    
+            # Input the search parameters.
+            input_search_title.send_keys(str(comic[1]))
+            time.sleep(1)
+    
+            # If the issue of the comic has any alphabet in it, then remove it and then search.
+            if not str(comic[3]).isdigit(): 
+                input_search_issue.send_keys(str(comic[3][:-1]))
+            else: 
+                input_search_issue.send_keys(str(comic[3]))
+            time.sleep(1)
+            driver.execute_script("arguments[0].click();",button_search_submit)
+    
+            # Wait for 20 seconds for results to show up
+            time.sleep(12)
+    
+            # Source Code of the search result page.
+            source_code = driver.page_source
+    
+            # Instantiate BS4 using the source code.
+            soup = bs4.BeautifulSoup(source_code,'html.parser')
+    
+            # Initial similarity. This similarity is between the given title and the hyperlink comic.
+            similarity = 0
+    
+            # Link of the comic.
+            comic_link = ''
+    
+            # Check for all the hyperlinks on the results page which lead to the comic
+            for link in soup.find_all('a', attrs={'class':'grid_issue'}):
+    
+                # Replace the superscript "#" in the comic name
+                a = str(link.text).replace("<sup>#</sup>","#")
+    
+                # Check for similarity between the hyperlink comic and my comic title. If more,
+                percentage = similar(a,comic[-1])
+                if percentage > similarity:
+                    similarity = similar(a,comic[-1])
+                    final_link = 'https://comicspriceguide.com' + str(link["href"])
+                    comic_link = final_link
+        else:
+            print("Link Exists")
+            comic_link = comic_num[1][9]
 
         # Goto the comic page if result is found.
         if comic_link != '':
