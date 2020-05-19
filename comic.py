@@ -28,8 +28,14 @@ sheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name='My Collection')
 # Create an empty Dataframe for our results
 dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
                                     'volume','published','keyIssue','price_paid',
-                                    'cover_price','value','comic_age','notes',
+                                    'cover_price','value','comic_age','notes','confidence',
                                     'characters_info','story','url_link','img'])
+
+# Create another for the html layout
+dfHTMLOut = pd.DataFrame(columns = ['1img','1txt','2img','2txt','3img','3txt','4img','4txt'])
+
+#sys.exit()
+
 
 driver.get("https://comicspriceguide.com/login")
 
@@ -49,6 +55,8 @@ driver.execute_script("arguments[0].click();",button_login_submit)
 
 # Waiting time for page to load.
 time.sleep(5)
+
+htmlColumn = 1
 
 for comic_num in sheet.iterrows():
     try:
@@ -120,9 +128,10 @@ for comic_num in sheet.iterrows():
                     similarity = similar(a,comic[-1])
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
-            if percentage > 0
+            if percentage > 0 :
                 print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
         else:
+            percentage = ''
             print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - " + str(comic_num[1][9]))
             comic_link = comic_num[1][9]
 
@@ -195,12 +204,52 @@ for comic_num in sheet.iterrows():
                                       'value':value,
                                       'comic_age':comic_age,
                                       'notes':notes,
+                                      'confidence':percentage,
                                       'characters_info':characters_info,
                                       'story':story,
                                       'url_link':url_link,
                                       'img':path_to_image_html(image)
                                       },
                                       ignore_index=True)
+        
+# =============================================================================
+#  Provides a grid eight elements wide for html layout
+# =============================================================================
+        #print("html Column: " + str(htmlColumn))        
+        if htmlColumn == 5:
+            htmlColumn = 1
+            dfHTMLOut = dfHTMLOut.append({'1img' : i1,
+                                          '1txt' : t1,
+                                          '2img' : i2,
+                                          '2txt' : t2,
+                                          '3img' : i3,
+                                          '3txt' : t3,
+                                          '4img' : i4,
+                                          '4txt' : t4
+                                          },
+                                      ignore_index=True)
+            i1 = ''
+            t1 = ''
+            i2 = ''
+            t2 = ''
+            i3 = ''
+            t3 = ''
+            i4 = ''
+            t4 = ''
+        if htmlColumn == 1:
+            i1 = path_to_image_html(image)
+            t1 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
+        if htmlColumn == 2:
+            i2 = path_to_image_html(image)
+            t2 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
+        if htmlColumn == 3:
+            i3 = path_to_image_html(image)
+            t3 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
+        if htmlColumn == 4:
+            i4 = path_to_image_html(image)
+            t4 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
+        htmlColumn = htmlColumn +1
+
 
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
@@ -220,12 +269,28 @@ for comic_num in sheet.iterrows():
         driver.get("https://comicspriceguide.com/Search")
         continue
 
+if htmlColumn != 1:
+    dfHTMLOut = dfHTMLOut.append({'1img' : i1,
+                                          '1txt' : t1,
+                                          '2img' : i2,
+                                          '2txt' : t2,
+                                          '3img' : i3,
+                                          '3txt' : t3,
+                                          '4img' : i4,
+                                          '4txt' : t4
+                                          },
+                                      ignore_index=True)
+    
 sheetname = date.today().strftime("%Y-%m-%d")
 with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
     dfResults.to_excel(writer, sheet_name=sheetname)
-    df = HTML(dfResults.to_html(escape=False))
+    df = HTML(dfHTMLOut.to_html(escape=False))
     
-    with open("comics.html",'w') as f:
+    with open("comics.html",'a') as f:
+        f.write("""<style type'"text/css">
+                table {font-family: Arial, Helvetica, sans-serif;font-size: medium;border-collapse: collapse;}
+                img {border-radius: 8px;width:250px;}
+                </style>""")
         f.write(df.data)
 
 print("Work is complete.")
