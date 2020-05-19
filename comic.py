@@ -31,12 +31,6 @@ dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
                                     'cover_price','value','comic_age','notes','confidence',
                                     'characters_info','story','url_link','img'])
 
-# Create another for the html layout
-dfHTMLOut = pd.DataFrame(columns = ['1img','1txt','2img','2txt','3img','3txt','4img','4txt'])
-
-#sys.exit()
-
-
 driver.get("https://comicspriceguide.com/login")
 
 # The error codes
@@ -56,7 +50,7 @@ driver.execute_script("arguments[0].click();",button_login_submit)
 # Waiting time for page to load.
 time.sleep(5)
 
-htmlColumn = 1
+htmlBody = ''
 
 for comic_num in sheet.iterrows():
     try:
@@ -215,40 +209,13 @@ for comic_num in sheet.iterrows():
 # =============================================================================
 #  Provides a grid eight elements wide for html layout
 # =============================================================================
-        #print("html Column: " + str(htmlColumn))        
-        if htmlColumn == 5:
-            htmlColumn = 1
-            dfHTMLOut = dfHTMLOut.append({'1img' : i1,
-                                          '1txt' : t1,
-                                          '2img' : i2,
-                                          '2txt' : t2,
-                                          '3img' : i3,
-                                          '3txt' : t3,
-                                          '4img' : i4,
-                                          '4txt' : t4
-                                          },
-                                      ignore_index=True)
-            i1 = ''
-            t1 = ''
-            i2 = ''
-            t2 = ''
-            i3 = ''
-            t3 = ''
-            i4 = ''
-            t4 = ''
-        if htmlColumn == 1:
-            i1 = path_to_image_html(image)
-            t1 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
-        if htmlColumn == 2:
-            i2 = path_to_image_html(image)
-            t2 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
-        if htmlColumn == 3:
-            i3 = path_to_image_html(image)
-            t3 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
-        if htmlColumn == 4:
-            i4 = path_to_image_html(image)
-            t4 = title + " " + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br>" + str(notes)
-        htmlColumn = htmlColumn +1
+        #print("html Column: " + str(htmlColumn))
+        htmlBody = htmlBody + """<div class="hvrbox">
+                                <img src='""" +  image + """' alt="Cover" class="hvrbox-layer_bottom">
+                                <div class="hvrbox-layer_top">
+                                <div class="hvrbox-text">""" + title + " #" + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br><br>" + str(notes) + """</div>
+                                </div>
+                                </div>"""
 
 
     except ValueError as ve:
@@ -269,28 +236,75 @@ for comic_num in sheet.iterrows():
         driver.get("https://comicspriceguide.com/Search")
         continue
 
-if htmlColumn != 1:
-    dfHTMLOut = dfHTMLOut.append({'1img' : i1,
-                                          '1txt' : t1,
-                                          '2img' : i2,
-                                          '2txt' : t2,
-                                          '3img' : i3,
-                                          '3txt' : t3,
-                                          '4img' : i4,
-                                          '4txt' : t4
-                                          },
-                                      ignore_index=True)
-    
+   
 sheetname = date.today().strftime("%Y-%m-%d")
 with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
     dfResults.to_excel(writer, sheet_name=sheetname)
-    df = HTML(dfHTMLOut.to_html(escape=False))
     
     with open("comics.html",'a') as f:
         f.write("""<style type'"text/css">
-                table {font-family: Arial, Helvetica, sans-serif;font-size: medium;border-collapse: collapse;}
-                img {border-radius: 8px;width:250px;}
+                .hvrbox,
+.hvrbox * {
+	box-sizing: border-box;
+}
+.hvrbox {
+	position: relative;
+	display: inline-block;
+	overflow: hidden;
+	max-width: 250px;
+	height: auto;
+}
+.hvrbox img {
+	max-width: 250px;
+}
+.hvrbox .hvrbox-layer_bottom {
+	display: block;
+}
+.hvrbox .hvrbox-layer_top {
+	opacity: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+	color: #fff;
+	padding: 15px;
+	-moz-transition: all 0.4s ease-in-out 0s;
+	-webkit-transition: all 0.4s ease-in-out 0s;
+	-ms-transition: all 0.4s ease-in-out 0s;
+	transition: all 0.4s ease-in-out 0s;
+}
+.hvrbox:hover .hvrbox-layer_top,
+.hvrbox.active .hvrbox-layer_top {
+	opacity: 1;
+}
+.hvrbox .hvrbox-text {
+	text-align: center;
+	font-size: 18px;
+	display: inline-block;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	-moz-transform: translate(-50%, -50%);
+	-webkit-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+}
+.hvrbox .hvrbox-text_mobile {
+	font-size: 15px;
+	border-top: 1px solid rgb(179, 179, 179); /* for old browsers */
+	border-top: 1px solid rgba(179, 179, 179, 0.7);
+	margin-top: 5px;
+	padding-top: 2px;
+	display: none;
+}
+.hvrbox.active .hvrbox-text_mobile {
+	display: block;
+}
                 </style>""")
-        f.write(df.data)
+        f.write(htmlBody)
 
 print("Work is complete.")
