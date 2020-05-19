@@ -282,6 +282,7 @@ with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:
 	opacity: 1;
 }
 .hvrbox .hvrbox-text {
+	font-family: Arial, Helvetica, sans-serif;
 	text-align: center;
 	font-size: 18px;
 	display: inline-block;
