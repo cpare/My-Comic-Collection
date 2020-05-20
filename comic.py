@@ -1,35 +1,29 @@
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import  By
-from pprint import pprint
 import bs4
 import time
 from difflib import SequenceMatcher
 from datetime import date
 import pandas as pd
 import sys
-import xlrd
-import numpy as np
-from IPython.display import Image, HTML
+
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
-
-def path_to_image_html(path):
-    return '<img src="'+ path + '"/>'
 
 driver = webdriver.Chrome()
 #driver.maximize_window()
 
 ExcelWorkbookName = 'Comics.xlsx'
 
-sheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name='My Collection')
+rawsheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name='My Collection')
+sortedsheet = rawsheet.sort_values(by=['Title','Volume','Issue #'])
+del rawsheet
 
 # Create an empty Dataframe for our results
 dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
                                     'volume','published','keyIssue','price_paid',
                                     'cover_price','value','comic_age','notes','confidence',
-                                    'characters_info','story','url_link','img'])
+                                    'characters_info','story','url_link'])
 
 driver.get("https://comicspriceguide.com/login")
 
@@ -52,7 +46,7 @@ time.sleep(5)
 
 htmlBody = ''
 
-for comic_num in sheet.iterrows():
+for comic_num in sortedsheet.iterrows():
     try:
         # Get the Comic
         comic = comic_num[1].to_list()
@@ -201,8 +195,7 @@ for comic_num in sheet.iterrows():
                                       'confidence':percentage,
                                       'characters_info':characters_info,
                                       'story':story,
-                                      'url_link':url_link,
-                                      'img':path_to_image_html(image)
+                                      'url_link':url_link
                                       },
                                       ignore_index=True)
         
@@ -210,12 +203,8 @@ for comic_num in sheet.iterrows():
 #  Provides a grid eight elements wide for html layout
 # =============================================================================
         #print("html Column: " + str(htmlColumn))
-        htmlBody = htmlBody + """<div class="hvrbox">
-                                <img src='""" +  image + """' alt="Cover" class="hvrbox-layer_bottom">
-                                <div class="hvrbox-layer_top">
-                                <div class="hvrbox-text">""" + title + " #" + str(issue) +"<br>Grade: " + str(grade) + "<br>" + "Estimated Value: " + value + "<br><br>" + str(notes) + """</div>
-                                </div>
-                                </div>"""
+        htmlBody = htmlBody + "<div class='hvrbox'><img src='"  +  str(image) + "' alt='Cover' class='hvrbox-layer_bottom'><div class='hvrbox-layer_top'><div class='hvrbox-text'>" 
+        htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div></div></div>"
 
 
     except ValueError as ve:
@@ -243,7 +232,9 @@ with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:
     
     with open("comics.html",'a') as f:
         f.write("""<style type'"text/css">
-                .hvrbox,
+body {background-color: 282828;}
+a {color: whitesmoke;text-decoration: none;}
+.hvrbox,
 .hvrbox * {
 	box-sizing: border-box;
 }
@@ -251,11 +242,12 @@ with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:
 	position: relative;
 	display: inline-block;
 	overflow: hidden;
-	max-width: 250px;
-	height: auto;
+	width: 250px;
+	height: 400px;
 }
 .hvrbox img {
-	max-width: 250px;
+	width: 250px;
+    height: 400px;
 }
 .hvrbox .hvrbox-layer_bottom {
 	display: block;
@@ -267,8 +259,8 @@ with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:
 	left: 0;
 	right: 0;
 	bottom: 0;
-	width: 100%;
-	height: 100%;
+	width: 250px;
+	height: 400px;
 	background: rgba(0, 0, 0, 0.6);
 	color: #fff;
 	padding: 15px;
@@ -283,7 +275,7 @@ with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:
 }
 .hvrbox .hvrbox-text {
 	font-family: Arial, Helvetica, sans-serif;
-	text-align: center;
+    text-align: center;
 	font-size: 18px;
 	display: inline-block;
 	position: absolute;
