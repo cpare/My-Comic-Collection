@@ -119,7 +119,7 @@ for comic_num in sortedsheet.iterrows():
             if percentage > 0 :
                 print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
         else:
-            percentage = ''
+            percentage = 1
             print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - " + str(comic_num[1][9]))
             comic_link = comic_num[1][9]
 
@@ -158,12 +158,25 @@ for comic_num in sortedsheet.iterrows():
 
         priceTable = soup.find(name='table',attrs={"id":"pricetable"})
         
+# =============================================================================
+#         Pad the grade with a 0 if it INT
+# =============================================================================
+        #print("Grade is float: " + str(isinstance(grade, float)))
+        
+        if grade == 10:
+            x = str(grade).replace('.','')
+        else:
+            if isinstance(grade, int):
+                x = str(grade) + "0"
+            else:
+                x = str(grade).replace('.','')
+
         value = ""
         for td in priceTable.find_all('td'):
             if(cgc == "Yes"):
-                id = 'lblGraded' + str(grade).replace('.','')
+                id = 'lblGraded' + x
             else:
-                id = 'lblValue' + str(grade).replace('.','')
+                id = 'lblValue' + x
 
             if(td.find('span',attrs={'id':id}) != None):
                 value =  td.find('span',attrs={'id':id}).text
@@ -171,7 +184,7 @@ for comic_num in sortedsheet.iterrows():
         characters_info = soup.find('div',attrs={'id':'dvCharacterList'}).text if soup.find('div',attrs={'id':'dvCharacterList'}) != None else "No Info Found"
         story = soup.find('div',attrs={'id':'dvStoryList'}).text.replace("Stories may contain spoilers","")
         url_link = driver.current_url
-
+        
         # Uncomment below to debug
 # =============================================================================
 #         print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
