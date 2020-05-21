@@ -20,10 +20,10 @@ sortedsheet = rawsheet.sort_values(by=['Title','Volume','Issue #'])
 del rawsheet
 
 # Create an empty Dataframe for our results
-dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
-                                    'volume','published','keyIssue','price_paid',
-                                    'cover_price','Graded','Ungraded','value','comic_age','notes','confidence',
-                                    'characters_info','story','url_link'])
+dfResults = pd.DataFrame(columns = ['publisher','title','volume','issue','variant',
+                                    'grade','cgc','published','keyIssue','price_paid',
+                                    'cover_price','Graded','Ungraded','value',
+                                    'comic_age','notes','confidence','url_link'])
 
 driver.get("https://comicspriceguide.com/login")
 
@@ -51,7 +51,7 @@ for index, thisComic in sortedsheet.iterrows():
     try:
         title = str(thisComic['Title']).strip().upper()
         issue = str(int(thisComic['Issue #'])).strip()
-        grade = str(int(thisComic['Grade'])).strip()
+        grade = str(thisComic['Grade']).strip()
         cgc = "No" if thisComic['CGC Graded'] == None else thisComic['CGC Graded']
         variant = '' if str(thisComic['Variant']).strip() == 'nan' else str(thisComic['Variant']).strip()
         url = '' if str(thisComic['Link']).strip() == 'nan' else str(thisComic['Link']).strip()
@@ -73,18 +73,7 @@ for index, thisComic in sortedsheet.iterrows():
             input_search_issue = driver.find_element_by_id("issueNu")
             button_search_submit = driver.find_element_by_id("btnSearch")
                     
-            # Appending the title to the end of list. Example, "The Amazing Spider-Man #101"
-            # Not sure why we do this yet
-            #FullName = Title + " #" + Issue + Variant
-            #comic.append(comic[1].upper() + " #" + str(comic[3]))
-    
-# =============================================================================
-#             # This is to convert "101.0" to just "101"
-#             if isinstance(comic[3], float):
-#                 comic[3] = int(comic[3])
-# =============================================================================
-    
-            # Input the search parameters.
+           # Input the search parameters.
             input_search_title.send_keys(str(thisComic['Title']))
             time.sleep(1)
             input_search_issue.send_keys(int(thisComic['Issue #']))
@@ -122,11 +111,13 @@ for index, thisComic in sortedsheet.iterrows():
             if percentage > 0 :
                 print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
         else:
-            percentage = 1
+            percentage = ''
             print(str(thisComic['Title']) + " #" + str(thisComic['Issue #']) + " - " + str(thisComic['Link']))
             comic_link = thisComic['Link']
 
-        # Goto the comic page if result is found.
+# =============================================================================
+#  A match has been determined - get the details
+# =============================================================================
         if comic_link != '':
             driver.get(comic_link)
         else:
@@ -154,14 +145,17 @@ for index, thisComic in sortedsheet.iterrows():
 
 # =============================================================================
 #  Get prices into a dataframe to find our grade
+#  Known Defect: Comics graded as 10 fail due to the DF having '10.'not '10.0'
 # =============================================================================
+        if len(grade) < 3:
+            grade = grade + ".0"          
         priceTable = soup.find(name='table',attrs={"id":"pricetable"})
         # Load the priceTable into a dataframe
         pricesdf = pd.read_html(priceTable.prettify())[0]
-        # Clean up the Condition column (has white spaces)
+        # Truncate Condition column values to allow matching
         pricesdf['Condition'] = pricesdf['Condition'].str[:3]
         pricesdf = pricesdf.rename(columns={'Graded Value  *': 'Graded Value'})
-        thisbooksgrade = pricesdf.loc[pricesdf['Condition'] == '9.0']
+        thisbooksgrade = pricesdf.loc[pricesdf['Condition'] == grade]
         RawValue = thisbooksgrade['Raw Value'].iloc[0]
         GradedValue = thisbooksgrade['Graded Value'].iloc[0]
         value = RawValue if cgc == 'No' else GradedValue
@@ -171,10 +165,11 @@ for index, thisComic in sortedsheet.iterrows():
         url_link = driver.current_url
         
 # =============================================================================
-#  Data to be put into excel file
+#  Add enriched book info into the Results DF
 # =============================================================================
         dfResults = dfResults.append({'title' : title,
                                       'issue' : issue,
+                                      'variant':variant,
                                       'grade':grade,
                                       'cgc':cgc,
                                       'publisher':publisher,
@@ -187,8 +182,6 @@ for index, thisComic in sortedsheet.iterrows():
                                       'comic_age':comic_age,
                                       'notes':notes,
                                       'confidence':percentage,
-                                      'characters_info':characters_info,
-                                      'story':story,
                                       'url_link':url_link,
                                       'Graded':GradedValue,
                                       'Ungraded':RawValue
@@ -199,7 +192,7 @@ for index, thisComic in sortedsheet.iterrows():
 #  Data for html layout
 # =============================================================================
         htmlBody = htmlBody + "<div class='hvrbox'><img src='"  +  str(image) + "' alt='Cover' class='hvrbox-layer_bottom'><div class='hvrbox-layer_top'><div class='hvrbox-text'>" 
-        htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div></div></div>"
+        htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) + str(variant) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div></div></div>"
 
 
     except ValueError as ve:
