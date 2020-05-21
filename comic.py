@@ -22,7 +22,7 @@ del rawsheet
 # Create an empty Dataframe for our results
 dfResults = pd.DataFrame(columns = ['title','issue','grade','cgc','publisher',
                                     'volume','published','keyIssue','price_paid',
-                                    'cover_price','value','comic_age','notes','confidence',
+                                    'cover_price','Graded','Ungraded','value','comic_age','notes','confidence',
                                     'characters_info','story','url_link'])
 
 driver.get("https://comicspriceguide.com/login")
@@ -46,48 +46,53 @@ time.sleep(5)
 
 htmlBody = ''
 
-for comic_num in sortedsheet.iterrows():
+#for comic_num in sortedsheet.iterrows():
+for index, thisComic in sortedsheet.iterrows():
     try:
-        # Get the Comic
-        comic = comic_num[1].to_list()
-        url = str(comic_num[1][9])
-        if url == 'nan' :
-            print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - Searching...")
+        title = str(thisComic['Title']).strip().upper()
+        issue = str(int(thisComic['Issue #'])).strip()
+        grade = str(int(thisComic['Grade'])).strip()
+        cgc = "No" if thisComic['CGC Graded'] == None else thisComic['CGC Graded']
+        variant = '' if str(thisComic['Variant']).strip() == 'nan' else str(thisComic['Variant']).strip()
+        url = '' if str(thisComic['Link']).strip() == 'nan' else str(thisComic['Link']).strip()
+        price_paid = "$" + (str(thisComic['Price Paid']) if str(thisComic['Price Paid']) != None else "0")
+
+        fullName = title + " #" + issue + variant
+        
+        if url == '' :
+            print(fullName + " - Searching...")
             # Navigating to search page
             if(driver.current_url != "https://comicspriceguide.com/Search"):
                 driver.get("https://comicspriceguide.com/Search")
     
             # Wait for the search page to load.
-            driver.implicitly_wait(30)
+            driver.implicitly_wait(15)
     
             # The Search elements.
             input_search_title = driver.find_element_by_id("search")
             input_search_issue = driver.find_element_by_id("issueNu")
             button_search_submit = driver.find_element_by_id("btnSearch")
-    
-            # Get the Comic
-            comic = comic_num[1].to_list()
                     
             # Appending the title to the end of list. Example, "The Amazing Spider-Man #101"
-            comic.append(comic[1].upper() + " #" + str(comic[3]))
+            # Not sure why we do this yet
+            #FullName = Title + " #" + Issue + Variant
+            #comic.append(comic[1].upper() + " #" + str(comic[3]))
     
-            # This is to convert "101.0" to just "101"
-            if isinstance(comic[3], float):
-                comic[3] = int(comic[3])
+# =============================================================================
+#             # This is to convert "101.0" to just "101"
+#             if isinstance(comic[3], float):
+#                 comic[3] = int(comic[3])
+# =============================================================================
     
             # Input the search parameters.
-            input_search_title.send_keys(str(comic[1]))
+            input_search_title.send_keys(str(thisComic['Title']))
             time.sleep(1)
-    
-            # If the issue of the comic has any alphabet in it, then remove it and then search.
-            if not str(comic[3]).isdigit(): 
-                input_search_issue.send_keys(str(comic[3][:-1]))
-            else: 
-                input_search_issue.send_keys(str(comic[3]))
-            time.sleep(1)
+            input_search_issue.send_keys(int(thisComic['Issue #']))
+
+            #time.sleep(1)
             driver.execute_script("arguments[0].click();",button_search_submit)
     
-            # Wait for 20 seconds for results to show up
+            # Wait for results to show up
             time.sleep(6)
     
             # Source Code of the search result page.
@@ -103,32 +108,29 @@ for comic_num in sortedsheet.iterrows():
             comic_link = ''
             
             percentage = 0
-    
-            # Check for all the hyperlinks on the results page which lead to the comic
+            
+            # Check all the books on the results screen to determine best match
             for link in soup.find_all('a', attrs={'class':'grid_issue'}):
-    
                 # Replace the superscript "#" in the comic name
-                a = str(link.text).replace("<sup>#</sup>","#")
-    
-                # Check for similarity between the hyperlink comic and my comic title. If more,
-                percentage = similar(a,comic[-1])
+                a = str(link.text).replace("<sup>#</sup>","#").upper()
+               # Check for similarity between the hyperlink comic and my comic title. If more,
+                percentage = similar(a,fullName)
                 if percentage > similarity:
-                    similarity = similar(a,comic[-1])
+                    similarity = similar(a,fullName)
                     final_link = 'https://comicspriceguide.com' + str(link["href"])
                     comic_link = final_link
             if percentage > 0 :
                 print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
         else:
             percentage = 1
-            print(str(comic_num[1][1]) + " #" + str(comic_num[1][3]) + " - " + str(comic_num[1][9]))
-            comic_link = comic_num[1][9]
+            print(str(thisComic['Title']) + " #" + str(thisComic['Issue #']) + " - " + str(thisComic['Link']))
+            comic_link = thisComic['Link']
 
         # Goto the comic page if result is found.
         if comic_link != '':
             driver.get(comic_link)
         else:
-            raise ValueError(NO_SEARCH_RESULTS_FOUND,"Looks like the search gave no result. Try searching the title and issue manually to confirm the issue.",comic[1],comic[3])
-
+            raise ValueError(NO_SEARCH_RESULTS_FOUND,"Looks like the search gave no result. Try searching the title and issue manually to confirm the issue.",thisComic['Title'],thisComic['Issue #'])
 
         # Wait 5 seconds for page to load and get its source code
         time.sleep(2)
@@ -139,59 +141,38 @@ for comic_num in sortedsheet.iterrows():
 
         # Finding out all details
         publisher = soup.find('a',attrs={'id':'hypPub'}).text
-        title = comic[1]
         volume = soup.find('span',attrs={'id':'lblVolume'}).text
-        issue = comic[3]
-        grade = comic[4]
-        cgc = "No" if comic[5] == None else comic[5]
         notes = soup.find('span',attrs = {'id':'spQComment'}).text
-        price_paid = "$" + (str(comic[7]) if str(comic[7]) != None else "0")
         keyIssue = "Yes" if "Key Issue" in soup.text else "No"
         image = soup.find('img',attrs={'id':'imgCoverMn'})['src']
         basic_info = []
         for s in soup.find_all('div',attrs={"class":"m-0 f-12"}):
             basic_info.append(s.parent.find('span',attrs={"class":"f-11"}).text.replace("   ", " "))
-
         published = basic_info[0] if basic_info[0] != " ADD" else "Unknown"
         comic_age = basic_info[1] if basic_info[1] != " ADD" else "Unknown"
         cover_price = basic_info[2] if basic_info[2] != " ADD" else "Unknown"   
 
+# =============================================================================
+#  Get prices into a dataframe to find our grade
+# =============================================================================
         priceTable = soup.find(name='table',attrs={"id":"pricetable"})
+        # Load the priceTable into a dataframe
+        pricesdf = pd.read_html(priceTable.prettify())[0]
+        # Clean up the Condition column (has white spaces)
+        pricesdf['Condition'] = pricesdf['Condition'].str[:3]
+        pricesdf = pricesdf.rename(columns={'Graded Value  *': 'Graded Value'})
+        thisbooksgrade = pricesdf.loc[pricesdf['Condition'] == '9.0']
+        RawValue = thisbooksgrade['Raw Value'].iloc[0]
+        GradedValue = thisbooksgrade['Graded Value'].iloc[0]
+        value = RawValue if cgc == 'No' else GradedValue
         
-# =============================================================================
-#         Pad the grade with a 0 if it INT
-# =============================================================================
-        #print("Grade is float: " + str(isinstance(grade, float)))
-        
-        if grade == 10:
-            x = str(grade).replace('.','')
-        else:
-            if isinstance(grade, int):
-                x = str(grade) + "0"
-            else:
-                x = str(grade).replace('.','')
-
-        value = ""
-        for td in priceTable.find_all('td'):
-            if(cgc == "Yes"):
-                id = 'lblGraded' + x
-            else:
-                id = 'lblValue' + x
-
-            if(td.find('span',attrs={'id':id}) != None):
-                value =  td.find('span',attrs={'id':id}).text
-
         characters_info = soup.find('div',attrs={'id':'dvCharacterList'}).text if soup.find('div',attrs={'id':'dvCharacterList'}) != None else "No Info Found"
         story = soup.find('div',attrs={'id':'dvStoryList'}).text.replace("Stories may contain spoilers","")
         url_link = driver.current_url
         
-        # Uncomment below to debug
 # =============================================================================
-#         print(publisher,title,volume,issue,grade,cgc,notes,price_paid,
-#               published,comic_age,cover_price,value,characters_info,story)
+#  Data to be put into excel file
 # =============================================================================
-
-        # Data to be put into excel file
         dfResults = dfResults.append({'title' : title,
                                       'issue' : issue,
                                       'grade':grade,
@@ -208,14 +189,15 @@ for comic_num in sortedsheet.iterrows():
                                       'confidence':percentage,
                                       'characters_info':characters_info,
                                       'story':story,
-                                      'url_link':url_link
+                                      'url_link':url_link,
+                                      'Graded':GradedValue,
+                                      'Ungraded':RawValue
                                       },
                                       ignore_index=True)
         
 # =============================================================================
-#  Provides a grid eight elements wide for html layout
+#  Data for html layout
 # =============================================================================
-        #print("html Column: " + str(htmlColumn))
         htmlBody = htmlBody + "<div class='hvrbox'><img src='"  +  str(image) + "' alt='Cover' class='hvrbox-layer_bottom'><div class='hvrbox-layer_top'><div class='hvrbox-text'>" 
         htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div></div></div>"
 
@@ -223,18 +205,18 @@ for comic_num in sortedsheet.iterrows():
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
             print("     Unable to find Match for " + str(ve.args[2]) + " #" + str(ve.args[3]))
-            dfResults = dfResults.append({'title' : comic_num[1][1],
-                                          'issue' : comic_num[1][3],
-                                          'grade' : comic_num[1][4],
-                                          'cgc'   : comic_num[1][5]}, ignore_index=True)
+            dfResults = dfResults.append({'title' : title,
+                                          'issue' : issue,
+                                          'grade' : grade,
+                                          'cgc' : cgc}, ignore_index=True)
         driver.get("https://comicspriceguide.com/Search")
         
     except Exception as e:
         print("Error: " + str(e))
-        dfResults = dfResults.append({'title' : comic_num[1][1],
-                                      'issue' : comic_num[1][3],
-                                      'grade': comic_num[1][4],
-                                      'cgc': comic_num[1][5]}, ignore_index=True)
+        dfResults = dfResults.append({'title' : title,
+                                      'issue' : issue,
+                                      'grade': grade,
+                                      'cgc': cgc}, ignore_index=True)
         driver.get("https://comicspriceguide.com/Search")
         continue
 
@@ -250,6 +232,7 @@ a {color: whitesmoke;text-decoration: none;}
 .hvrbox,
 .hvrbox * {
 	box-sizing: border-box;
+    padding: 5px;
 }
 .hvrbox {
 	position: relative;
