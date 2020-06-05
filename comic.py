@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 from datetime import date
 import pandas as pd
 import sys
-
+from camelcase import CamelCase
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
@@ -14,21 +14,15 @@ driver = webdriver.Chrome()
 #driver.maximize_window()
 
 ExcelWorkbookName = 'Comics.xlsx'
+ExcelSheetName = 'My Collection'
 
-rawsheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name='My Collection')
-sortedsheet = rawsheet.sort_values(by=['Title','Volume','Issue #'])
+rawsheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name=ExcelSheetName)
+sortedsheet = rawsheet.sort_values(by=['Title','Volume','Issue'])
 del rawsheet
-
-# Create an empty Dataframe for our results
-dfResults = pd.DataFrame(columns = ['publisher','title','volume','issue','variant',
-                                    'grade','cgc','published','keyIssue','price_paid',
-                                    'cover_price','Graded','Ungraded','value',
-                                    'comic_age','notes','confidence','url_link'])
 
 driver.get("https://comicspriceguide.com/login")
 
 # The error codes
-
 NO_SEARCH_RESULTS_FOUND = 1
 
 # Login Elements
@@ -45,17 +39,19 @@ driver.execute_script("arguments[0].click();",button_login_submit)
 time.sleep(5)
 
 htmlBody = ''
+rundate = date.today().strftime("%Y-%m-%d")
 
 #for comic_num in sortedsheet.iterrows():
 for index, thisComic in sortedsheet.iterrows():
     try:
+        
         title = str(thisComic['Title']).strip().upper()
-        issue = str(int(thisComic['Issue #'])).strip()
+        issue = str(int(thisComic['Issue'])).strip()
         grade = str(thisComic['Grade']).strip()
-        cgc = "No" if thisComic['CGC Graded'] == None else thisComic['CGC Graded']
+        cgc = "No" if thisComic['CGC'] == None else thisComic['CGC']
         variant = '' if str(thisComic['Variant']).strip() == 'nan' else str(thisComic['Variant']).strip()
-        url = '' if str(thisComic['Link']).strip() == 'nan' else str(thisComic['Link']).strip()
-        price_paid = "$" + (str(thisComic['Price Paid']) if str(thisComic['Price Paid']) != None else "0")
+        url = '' if str(thisComic['Book_Link']).strip() == 'nan' else str(thisComic['Book_Link']).strip()
+        price_paid = "$" + (str(thisComic['Price_Paid']) if str(thisComic['Price_Paid']) != None else "0")
 
         fullName = title + " #" + issue + variant
         
@@ -76,7 +72,7 @@ for index, thisComic in sortedsheet.iterrows():
            # Input the search parameters.
             input_search_title.send_keys(str(thisComic['Title']))
             time.sleep(1)
-            input_search_issue.send_keys(int(thisComic['Issue #']))
+            input_search_issue.send_keys(int(thisComic['Issue']))
 
             #time.sleep(1)
             driver.execute_script("arguments[0].click();",button_search_submit)
@@ -99,21 +95,21 @@ for index, thisComic in sortedsheet.iterrows():
             percentage = 0
             
             # Check all the books on the results screen to determine best match
-            for link in soup.find_all('a', attrs={'class':'grid_issue'}):
+            for candidate in soup.find_all('a', attrs={'class':'grid_issue'}):
                 # Replace the superscript "#" in the comic name
-                a = str(link.text).replace("<sup>#</sup>","#").upper()
+                a = str(candidate.text).replace("<sup>#</sup>","#").upper()
                # Check for similarity between the hyperlink comic and my comic title. If more,
                 percentage = similar(a,fullName)
                 if percentage > similarity:
                     similarity = similar(a,fullName)
-                    final_link = 'https://comicspriceguide.com' + str(link["href"])
+                    final_link = 'https://comicspriceguide.com' + str(candidate["href"])
                     comic_link = final_link
             if percentage > 0 :
-                print("     Found a match, confidence: " + str(int(percentage*100)) + "%")
+                print("     Found a match, confidence: " + str(int(percentage*100)) + "% - " + comic_link) 
         else:
-            percentage = ''
-            print(str(thisComic['Title']) + " #" + str(thisComic['Issue #']) + " - " + str(thisComic['Link']))
-            comic_link = thisComic['Link']
+            percentage = None
+            print(str(thisComic['Title']) + " #" + str(thisComic['Issue']) + " - " + str(thisComic['Book_Link']))
+            comic_link = thisComic['Book_Link']
 
 # =============================================================================
 #  A match has been determined - get the details
@@ -121,7 +117,7 @@ for index, thisComic in sortedsheet.iterrows():
         if comic_link != '':
             driver.get(comic_link)
         else:
-            raise ValueError(NO_SEARCH_RESULTS_FOUND,"Looks like the search gave no result. Try searching the title and issue manually to confirm the issue.",thisComic['Title'],thisComic['Issue #'])
+            raise ValueError(NO_SEARCH_RESULTS_FOUND,"Looks like the search gave no result. Try searching the title and issue manually to confirm the issue.",thisComic['Title'],thisComic['Issue'])
 
         # Wait 5 seconds for page to load and get its source code
         time.sleep(2)
@@ -158,89 +154,74 @@ for index, thisComic in sortedsheet.iterrows():
         thisbooksgrade = pricesdf.loc[pricesdf['Condition'] == grade]
         RawValue = thisbooksgrade['Raw Value'].iloc[0]
         GradedValue = thisbooksgrade['Graded Value'].iloc[0]
-        value = RawValue if cgc == 'No' else GradedValue
+        value = RawValue if cgc.upper() == 'NO' else GradedValue
         
         characters_info = soup.find('div',attrs={'id':'dvCharacterList'}).text if soup.find('div',attrs={'id':'dvCharacterList'}) != None else "No Info Found"
         story = soup.find('div',attrs={'id':'dvStoryList'}).text.replace("Stories may contain spoilers","")
         url_link = driver.current_url
         
 # =============================================================================
-#  Add enriched book info into the Results DF
+#  Determine Book Price change from last scan using the "Value" field
 # =============================================================================
-        dfResults = dfResults.append({'title' : title,
-                                      'issue' : issue,
-                                      'variant':variant,
-                                      'grade':grade,
-                                      'cgc':cgc,
-                                      'publisher':publisher,
-                                      'volume':volume,
-                                      'published':published,
-                                      'keyIssue':keyIssue,
-                                      'price_paid':price_paid,
-                                      'cover_price':cover_price,
-                                      'value':value,
-                                      'comic_age':comic_age,
-                                      'notes':notes,
-                                      'confidence':percentage,
-                                      'url_link':url_link,
-                                      'Graded':GradedValue,
-                                      'Ungraded':RawValue
-                                      },
-                                      ignore_index=True)
-        
+        LastScanValue = str(thisComic['Value']).strip()
+        if len(LastScanValue) > 0:
+            LastScanValue = float(LastScanValue.replace('$',''))
+            CurrentScanValue = float(value.replace('$',''))
+            priceshift = round((CurrentScanValue - LastScanValue),2)
+            print('PriceShift: ' + str(priceshift))
+            
+# =============================================================================
+#  update the DF
+# =============================================================================
+        sortedsheet.at[index,'Publisher'] = publisher
+        sortedsheet.at[index,'Volume'] = volume
+        sortedsheet.at[index,'Published'] = published
+        sortedsheet.at[index,'KeyIssue'] = keyIssue
+        sortedsheet.at[index,'Cover_Price'] = cover_price
+        sortedsheet.at[index,'Comic_Age'] = comic_age
+        sortedsheet.at[index,'Notes'] = notes
+        sortedsheet.at[index,'Confidence'] = percentage
+        sortedsheet.at[index,'Book_Link'] = url_link
+        sortedsheet.at[index,'Graded'] = GradedValue
+        sortedsheet.at[index,'Ungraded'] = RawValue
+        sortedsheet.at[index,'Cover_Image'] = image
+        sortedsheet.at[index, rundate] = value
+            
 # =============================================================================
 #  Data for html layout
 # =============================================================================
+        if cgc.upper() =='NO':
+            cgcdiv = ''
+        else: 
+            cgcdiv = "<div class='cgc'>CGC</div>"
+            
         htmlBody = htmlBody + "<div class='hvrbox'><img src='"  +  str(image) + "' alt='Cover' class='hvrbox-layer_bottom'><div class='hvrbox-layer_top'><div class='hvrbox-text'>" 
-        htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) + str(variant) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div></div></div>"
+        htmlBody = htmlBody + "<a href='" + str(url_link) + "'>" + str(title) + " #" + str(issue) + str(variant) +"<br><br>Grade: " + str(grade) + "<br><br>Value: " + str(value) + "<br><br>" + str(notes) + "</a></div>" + str(cgcdiv) + "</div></div>"
 
 
     except ValueError as ve:
         if(ve.args[0] == NO_SEARCH_RESULTS_FOUND):
             print("     Unable to find Match for " + str(ve.args[2]) + " #" + str(ve.args[3]))
-            dfResults = dfResults.append({'title' : title,
-                                          'issue' : issue,
-                                          'grade' : grade,
-                                          'cgc' : cgc}, ignore_index=True)
         driver.get("https://comicspriceguide.com/Search")
         
     except Exception as e:
-        print("Error: " + str(e))
-        dfResults = dfResults.append({'title' : title,
-                                      'issue' : issue,
-                                      'grade': grade,
-                                      'cgc': cgc}, ignore_index=True)
+        print("Error while working on " + title + ' ' + str(e))
         driver.get("https://comicspriceguide.com/Search")
         continue
 
-   
-sheetname = date.today().strftime("%Y-%m-%d")
-with pd.ExcelWriter(ExcelWorkbookName, mode='a') as writer:  
-    dfResults.to_excel(writer, sheet_name=sheetname)
+with pd.ExcelWriter(ExcelWorkbookName, mode='w') as writer:  
+    sortedsheet.to_excel(writer, sheet_name=ExcelSheetName)
     
-    with open("comics.html",'a') as f:
+    with open("comics.html",'w') as f:
         f.write("""<style type'"text/css">
 body {background-color: 282828;}
 a {color: whitesmoke;text-decoration: none;}
+.cgc {background-color: rgb(148, 7, 35);z-index: inherit 5;font-family: Arial, Helvetica, sans-serif;position: absolute;bottom: 0;}
 .hvrbox,
-.hvrbox * {
-	box-sizing: border-box;
-    padding: 5px;
-}
-.hvrbox {
-	position: relative;
-	display: inline-block;
-	overflow: hidden;
-	width: 250px;
-	height: 400px;
-}
-.hvrbox img {
-	width: 250px;
-    height: 400px;
-}
-.hvrbox .hvrbox-layer_bottom {
-	display: block;
-}
+.hvrbox * {box-sizing: border-box; padding: 5px;}
+.hvrbox {position: relative;display: inline-block;overflow: hidden;width: 250px;height: 400px;}
+.hvrbox img {width: 250px;height: 400px;}
+.hvrbox .hvrbox-layer_bottom {display: block;}
 .hvrbox .hvrbox-layer_top {
 	opacity: 0;
 	position: absolute;
@@ -259,9 +240,7 @@ a {color: whitesmoke;text-decoration: none;}
 	transition: all 0.4s ease-in-out 0s;
 }
 .hvrbox:hover .hvrbox-layer_top,
-.hvrbox.active .hvrbox-layer_top {
-	opacity: 1;
-}
+.hvrbox.active .hvrbox-layer_top {opacity: 1;}
 .hvrbox .hvrbox-text {
 	font-family: Arial, Helvetica, sans-serif;
     text-align: center;
@@ -283,10 +262,9 @@ a {color: whitesmoke;text-decoration: none;}
 	padding-top: 2px;
 	display: none;
 }
-.hvrbox.active .hvrbox-text_mobile {
-	display: block;
-}
-                </style>""")
+.hvrbox.active .hvrbox-text_mobile {display: block;}
+</style>
+""")
         f.write(htmlBody)
 
 print("Work is complete.")
