@@ -31,7 +31,7 @@ Provide the following items in an XLS:
   - Confidence - Confidence the app had when attempting to match
   - Book Link - (Provided Above)
   - Cover Url - Cover Image
-  - <Date> - The date the scan was performed and the value of the book at that time, allowing you to scan periodically and easily identify price fluctuations.
+  - Date - The date the scan was performed and the value of the book at that time, allowing you to scan periodically and easily identify price fluctuations.
 
 HTML Results:
  - A single HTML page with the covers of each of your books, formatted to look stunning on any format
