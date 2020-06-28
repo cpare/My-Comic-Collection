@@ -3,13 +3,13 @@
 Result is an updated HTML page and XLS with current values, description, and other helpful features
 
 <b>Provide the following items in an XLS:</b>
- - Title - Your Comics Title (Amazing Spider Man)
- - Issue - The Issue Number (101)
- - Grade - Grade of the book based on numbers offered on https://comicspriceguide.com
- - CGC - Yes/No if the Book has been "Officially graded"
- - Variant - Some Issues have multiple printes/covers, this is where yuo indicate the specific cover you have (E)
- - Price_Paid - The Proce you paid for the book
- - Book Link - Sometimes the app doesn't select the right book, this allows you to specifically provide the URL, when populated we skip the search and use this (Optional)
+ - <b>Title</b> - Your Comics Title (Amazing Spider Man)
+ - <b>Issue</b> - The Issue Number (101)
+ - <b>Grade</b> - Grade of the book based on numbers offered on https://comicspriceguide.com
+ - <b>CGC</b> - Yes/No if the Book has been "Officially graded"
+ - <b>Variant</b> - Some Issues have multiple printes/covers, this is where yuo indicate the specific cover you have (E)
+ - <b>Price_Paid</b> - The Price you paid for the book
+ - <b>Book Link</b> - Sometimes the app doesn't select the right book, this allows you to specifically provide the URL, when populated we skip the search and use this (Optional)
  
  <b>XLS Results:</b>
   - Publisher - Publisher of the title
