@@ -12,26 +12,26 @@ Result is an updated HTML page and XLS with current values, description, and oth
  - <b>Book Link</b> - Sometimes the app doesn't select the right book, this allows you to specifically provide the URL, when populated we skip the search and use this (Optional)
  
  <b>XLS Results:</b>
-  - Publisher - Publisher of the title
-  - Title - (Provided Above)
-  - Volume - Volume 
-  - Issue - (Provided Above)
-  - Variant - (Provided Above)
-  - Grade - (Provided Above)
-  - CGC - (Provided Above)
-  - PublishDate - Original Publish Date
-  - KeyIssue - Is the book considered a "Key Issue" (Yes/No)
-  - Price_Paid - (Provided Above)
-  - Cover_Price - Original Cover Price
-  - Graded Price - Value of book & and grade if professionally graded
-  - Ungraded Price - Value of book if not professionally graded
-  - Value - Value of book in current state
-  - Comic_Age - Comic "Age" (Silver, Modern)
-  - Notes - Short description of the comic, including references to 1st appearances
-  - Confidence - Confidence the app had when attempting to match
-  - Book Link - (Provided Above)
-  - Cover Url - Cover Image
-  - Date - The date the scan was performed and the value of the book at that time, allowing you to scan periodically and easily identify price fluctuations.
+  - <b>Publisher</b> - Publisher of the title
+  - <b>Title</b> - (Provided Above)
+  - <b>Volume</b> - Volume 
+  - <b>Issue</b> - (Provided Above)
+  - <b>Variant</b> - (Provided Above)
+  - <b>Grade</b> - (Provided Above)
+  - <b>CGC</b> - (Provided Above)
+  - <b>PublishDate</b> - Original Publish Date
+  - <b>KeyIssue</b> - Is the book considered a "Key Issue" (Yes/No)
+  - <b>Price_Paid</b> - (Provided Above)
+  - <b>Cover_Price</b> - Original Cover Price
+  - <b>Graded Price</b> - Value of book & and grade if professionally graded
+  - <b>Ungraded Price</b> - Value of book if not professionally graded
+  - <b>Value</b> - Value of book in current state
+  - <b>Comic_Age</b> - Comic "Age" (Silver, Modern)
+  - <b>Notes</b> - Short description of the comic, including references to 1st appearances
+  - <b>Confidence</b> - Confidence the app had when attempting to match
+  - <b>Book Link</b> - (Provided Above)
+  - <b>Cover Url</b> - Cover Image
+  - <b>Date</b> - The date the scan was performed and the value of the book at that time, allowing you to scan periodically and easily identify price fluctuations.
 
 <b>HTML Results:</b>
  - A single HTML page with the covers of each of your books, formatted to look stunning on any format
