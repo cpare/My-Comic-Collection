@@ -2,7 +2,7 @@
   Python script that takes just a few inputs from an Excel sheet to query for additional details from https://comicspriceguide.com.  
 Result is an updated HTML page and XLS with current values, description, and other helpful features
 
-Provide the following items in an XLS:
+<b>Provide the following items in an XLS:</b>
  - Title - Your Comics Title (Amazing Spider Man)
  - Issue - The Issue Number (101)
  - Grade - Grade of the book based on numbers offered on https://comicspriceguide.com
@@ -11,7 +11,7 @@ Provide the following items in an XLS:
  - Price_Paid - The Proce you paid for the book
  - Book Link - Sometimes the app doesn't select the right book, this allows you to specifically provide the URL, when populated we skip the search and use this (Optional)
  
- XLS Results:
+ <b>XLS Results:</b>
   - Publisher - Publisher of the title
   - Title - (Provided Above)
   - Volume - Volume 
@@ -33,7 +33,7 @@ Provide the following items in an XLS:
   - Cover Url - Cover Image
   - Date - The date the scan was performed and the value of the book at that time, allowing you to scan periodically and easily identify price fluctuations.
 
-HTML Results:
+<b>HTML Results:</b>
  - A single HTML page with the covers of each of your books, formatted to look stunning on any format
  - Hover-over any book to see book details (Title, Grade, Value, CGC Graded)
  - Click any book to go directly to that book on https://comicspriceguide.com
