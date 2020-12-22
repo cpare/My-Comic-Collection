@@ -1,8 +1,8 @@
 # My-Comic-Book-Collection
-  Python script that takes just a few inputs from an Excel sheet to query for additional details from https://comicspriceguide.com.  
-Result is an updated HTML page and XLS with current values, description, and other helpful features
+  Python script that takes just a few inputs from a Google sheet to query for additional details from https://comicspriceguide.com.  
+Result is an updated HTML page and Google Sheet with current values, description, and other helpful features
 
-<b>Provide the following items in an XLS:</b>
+<b>Provide the following items in a Google Sheet:</b>
  - <b>Title</b> - Your Comics Title (Amazing Spider Man)
  - <b>Issue</b> - The Issue Number (101)
  - <b>Grade</b> - Grade of the book based on numbers offered on https://comicspriceguide.com
@@ -11,7 +11,7 @@ Result is an updated HTML page and XLS with current values, description, and oth
  - <b>Price_Paid</b> - The Price you paid for the book
  - <b>Book Link</b> - Sometimes the app doesn't select the right book, this allows you to specifically provide the URL, when populated we skip the search and use this (Optional)
  
- <b>XLS Results:</b>
+ <b>Results:</b>
   - <b>Publisher</b> - Publisher of the title
   - <b>Title</b> - (Provided Above)
   - <b>Volume</b> - Volume 
