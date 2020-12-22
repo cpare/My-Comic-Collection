@@ -1,3 +1,4 @@
+from __future__ import print_function
 from selenium import webdriver
 import bs4
 import time
@@ -6,19 +7,86 @@ from datetime import date
 import pandas as pd
 import sys
 from camelcase import CamelCase
+import random
+import pickle
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+import pandas as pd
+
+
+# If modifying these scopes, delete the file token.pickle.
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+# The ID and range of a sample spreadsheet.
+SAMPLE_SPREADSHEET_ID = '1MqDZLmTBqdpW4boxvjEkDerW7c8mfjFZa7Q69jMapcw'
+SAMPLE_RANGE_NAME = 'My Collection'
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
 
 driver = webdriver.Chrome()
 #driver.maximize_window()
+# =============================================================================
+# 
+# Excel_Workbook_Name = 'Comics.xlsx'
+# Excel_Sheet_Name = 'My Collection'
+# =============================================================================
 
-ExcelWorkbookName = 'Comics.xlsx'
-ExcelSheetName = 'My Collection'
+def FetchComics(SAMPLE_SPREADSHEET_ID, SAMPLE_RANGE_NAME):
+    #Opens the specified google sheet
+    creds = None
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    
+    service = build('sheets', 'v4', credentials=creds)
+    
+    # Call the Sheets API
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+                                range=SAMPLE_RANGE_NAME).execute()
+    
+    values = result.get('values', [])
+    new = pd.DataFrame.from_dict(values)
+    new.columns = new.iloc[0]
+    
+    return(new)
 
-rawsheet = pd.read_excel(open(ExcelWorkbookName, 'rb'), sheet_name=ExcelSheetName)
-sortedsheet = rawsheet.sort_values(by=['Title','Volume','Issue'])
-del rawsheet
+
+def FindComic():
+    return()
+    
+    
+    
+# =============================================================================
+#     if not values:
+#         print('No data found.')
+#     else:
+#         print('Name, Major:')
+#         for row in values:
+#             print(row)
+#             # Print columns A and E, which correspond to indices 0 and 4.
+#             # print('%s, %s' % (row[0], row[3]))
+# =============================================================================
+
+
+Starting_DF = FetchComics(SAMPLE_SPREADSHEET_ID, SAMPLE_RANGE_NAME)
+sortedsheet = Starting_DF.sort_values(by=['Title','Volume','Issue'])
 
 driver.get("https://comicspriceguide.com/login")
 
@@ -35,8 +103,8 @@ input_login_username.send_keys("botbotbot")
 input_login_password.send_keys("iforgotit!")
 driver.execute_script("arguments[0].click();",button_login_submit)
 
-# Waiting time for page to load.
-time.sleep(5)
+# Waiting between 5 and 20 seconds to look like a user
+time.sleep(random.uniform(5, 10))
 
 htmlBody = ''
 rundate = date.today().strftime("%Y-%m-%d")
@@ -48,14 +116,14 @@ for index, thisComic in sortedsheet.iterrows():
         title = str(thisComic['Title']).strip().upper()
         issue = str(int(thisComic['Issue'])).strip()
         grade = str(thisComic['Grade']).strip()
-        cgc = "No" if thisComic['CGC'] == None else thisComic['CGC']
+        cgc = "No" if thisComic['CGC Graded'] == None else thisComic['CGC Graded']
         variant = '' if str(thisComic['Variant']).strip() == 'nan' else str(thisComic['Variant']).strip()
-        url = '' if str(thisComic['Book_Link']).strip() == 'nan' else str(thisComic['Book_Link']).strip()
-        price_paid = "$" + (str(thisComic['Price_Paid']) if str(thisComic['Price_Paid']) != None else "0")
+        url = '' if str(thisComic['Book Link']).strip() == 'nan' else str(thisComic['Book Link']).strip()
+        price_paid = "$" + (str(thisComic['Price Paid']) if str(thisComic['Price Paid']) != None else "0")
 
         fullName = title + " #" + issue + variant
-        
-        if url == '' :
+                        
+        if url == 'None' :
             print(fullName + " - Searching...")
             # Navigating to search page
             if(driver.current_url != "https://comicspriceguide.com/Search"):
@@ -69,16 +137,19 @@ for index, thisComic in sortedsheet.iterrows():
             input_search_issue = driver.find_element_by_id("issueNu")
             button_search_submit = driver.find_element_by_id("btnSearch")
                     
-           # Input the search parameters.
-            input_search_title.send_keys(str(thisComic['Title']))
-            time.sleep(1)
-            input_search_issue.send_keys(int(thisComic['Issue']))
-
-            #time.sleep(1)
+            # Input the search parameters.
+            input_search_title.send_keys(title)
+            #input_search_title.send_keys(str(thisComic['Title']))
+            
+            #sleep to prevent overloading the site...
+            time.sleep(random.uniform(2, 5))
+            input_search_issue.send_keys(issue)
+            #input_search_issue.send_keys(int(thisComic['Issue']))
+            
             driver.execute_script("arguments[0].click();",button_search_submit)
     
             # Wait for results to show up
-            time.sleep(6)
+            time.sleep(random.uniform(5, 20))
     
             # Source Code of the search result page.
             source_code = driver.page_source
@@ -94,7 +165,7 @@ for index, thisComic in sortedsheet.iterrows():
             
             percentage = 0
             
-            # Check all the books on the results screen to determine best match
+            # Checnew = pd.DataFrame.from_dict(data)k all the books on the results screen to determine best match
             for candidate in soup.find_all('a', attrs={'class':'grid_issue'}):
                 # Replace the superscript "#" in the comic name
                 a = str(candidate.text).replace("<sup>#</sup>","#").upper()
@@ -108,8 +179,8 @@ for index, thisComic in sortedsheet.iterrows():
                 print("     Found a match, confidence: " + str(int(percentage*100)) + "% - " + comic_link) 
         else:
             percentage = None
-            print(str(thisComic['Title']) + " #" + str(thisComic['Issue']) + " - " + str(thisComic['Book_Link']))
-            comic_link = thisComic['Book_Link']
+            print(str(thisComic['Title']) + " #" + str(thisComic['Issue']) + " - " + str(thisComic['Book Link']))
+            comic_link = thisComic['Book Link']
 
 # =============================================================================
 #  A match has been determined - get the details
@@ -120,7 +191,7 @@ for index, thisComic in sortedsheet.iterrows():
             raise ValueError(NO_SEARCH_RESULTS_FOUND,"Looks like the search gave no result. Try searching the title and issue manually to confirm the issue.",thisComic['Title'],thisComic['Issue'])
 
         # Wait 5 seconds for page to load and get its source code
-        time.sleep(2)
+        time.sleep(random.uniform(5, 20))
         source_code = driver.page_source
 
         # New BS4 Instance with the comic's page's source code
@@ -163,12 +234,14 @@ for index, thisComic in sortedsheet.iterrows():
 # =============================================================================
 #  Determine Book Price change from last scan using the "Value" field
 # =============================================================================
-        LastScanValue = str(thisComic['Value']).strip()
-        if len(LastScanValue) > 0:
-            LastScanValue = float(LastScanValue.replace('$',''))
-            CurrentScanValue = float(value.replace('$',''))
-            priceshift = round((CurrentScanValue - LastScanValue),2)
-            print('PriceShift: ' + str(priceshift))
+# =============================================================================
+#         LastScanValue = str(thisComic['Value']).strip()
+#         if len(LastScanValue) > 0:
+#             LastScanValue = float(LastScanValue.replace('$',''))
+#             CurrentScanValue = float(value.replace('$',''))
+#             priceshift = round((CurrentScanValue - LastScanValue),2)
+#             print('PriceShift: ' + str(priceshift))
+# =============================================================================
             
 # =============================================================================
 #  update the DF
@@ -177,14 +250,14 @@ for index, thisComic in sortedsheet.iterrows():
         sortedsheet.at[index,'Volume'] = volume
         sortedsheet.at[index,'Published'] = published
         sortedsheet.at[index,'KeyIssue'] = keyIssue
-        sortedsheet.at[index,'Cover_Price'] = cover_price
-        sortedsheet.at[index,'Comic_Age'] = comic_age
+        sortedsheet.at[index,'Cover Price'] = cover_price
+        sortedsheet.at[index,'Comic Age'] = comic_age
         sortedsheet.at[index,'Notes'] = notes
         sortedsheet.at[index,'Confidence'] = percentage
-        sortedsheet.at[index,'Book_Link'] = url_link
+        sortedsheet.at[index,'Book Link'] = url_link
         sortedsheet.at[index,'Graded'] = GradedValue
         sortedsheet.at[index,'Ungraded'] = RawValue
-        sortedsheet.at[index,'Cover_Image'] = image
+        sortedsheet.at[index,'Cover Image'] = image
         sortedsheet.at[index, rundate] = value
             
 # =============================================================================
@@ -209,8 +282,12 @@ for index, thisComic in sortedsheet.iterrows():
         driver.get("https://comicspriceguide.com/Search")
         continue
 
-with pd.ExcelWriter(ExcelWorkbookName, mode='w') as writer:  
-    sortedsheet.to_excel(writer, sheet_name=ExcelSheetName)
+# =============================================================================
+#  Committed to XLS / Replacing with Google Sheet
+# =============================================================================
+# with pd.ExcelWriter(Excel_Workbook_Name, mode='w') as writer:  
+#     sortedsheet.to_excel(writer, sheet_name=Excel_Sheet_Name)
+# =============================================================================
     
     with open("comics.html",'w') as f:
         f.write("""<style type'"text/css">
