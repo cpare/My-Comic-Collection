@@ -33,8 +33,8 @@ def LoginComicsPriceGuide():
     input_login_password = driver.find_element_by_xpath('//input[@id="user_password"]')
     button_login_submit = driver.find_element_by_id("btnLogin")
     # Fill out login page
-    input_login_username.send_keys("botbotbot")
-    input_login_password.send_keys("iforgotit!")
+    input_login_username.send_keys("username")
+    input_login_password.send_keys("password")
     driver.execute_script("arguments[0].click();",button_login_submit)
     # Waiting between 5 and 20 seconds to look like a user
     time.sleep(random.uniform(5, 10))
