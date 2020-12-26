@@ -18,6 +18,11 @@ htmlBody = ''
 # The error codes
 NO_SEARCH_RESULTS_FOUND = 1
 
+User_Name = input('ComicsPriceGuide.com Username:  ')
+User_Pass = input('ComicsPriceGuide.com Password:  ')
+Google_Workbook = input('Google Workbook Name:    ')
+Google_Sheet = input('Google Worksheet Name:    ')
+
 
 def similar(a, b):
     return SequenceMatcher(None, a, b).ratio()
@@ -26,15 +31,15 @@ driver = webdriver.Chrome()
 #driver.maximize_window()
 
 
-def LoginComicsPriceGuide():
+def LoginComicsPriceGuide(User_Name, User_Pass):
     driver.get("https://comicspriceguide.com/login")
     # Login Page Elements
     input_login_username = driver.find_element_by_xpath('//input[@id="user_username"]')
     input_login_password = driver.find_element_by_xpath('//input[@id="user_password"]')
     button_login_submit = driver.find_element_by_id("btnLogin")
     # Fill out login page
-    input_login_username.send_keys("username")
-    input_login_password.send_keys("password")
+    input_login_username.send_keys(User_Name)
+    input_login_password.send_keys(User_Pass)
     driver.execute_script("arguments[0].click();",button_login_submit)
     # Waiting between 5 and 20 seconds to look like a user
     time.sleep(random.uniform(5, 10))
@@ -52,32 +57,23 @@ def SearchComic(Title, Issue):
     input_search_title = driver.find_element_by_id("search")
     input_search_issue = driver.find_element_by_id("issueNu")
     button_search_submit = driver.find_element_by_id("btnSearch")
-           
     # Fill out the search fields
     input_search_title.send_keys(Title)
     input_search_issue.send_keys(Issue)
-    
     #sleep to prevent overloading the site...
     time.sleep(random.uniform(2, 5))
-    
     driver.execute_script("arguments[0].click();",button_search_submit)
-
     # Wait for results to show up
     time.sleep(random.uniform(5, 20))
-
     # Capture resulting page source
     source_code = driver.page_source
-
     # Instantiate BS4 using the source code.
     soup = bs4.BeautifulSoup(source_code,'html.parser')
-
     # Initial similarity. This similarity is between the given title and the hyperlink comic.
     similarity = 0
-
     # Link of the comic.
     comic_link = ''
     percentage = 0
- 
     #Determine the best match for the comic that was just serached for
     for candidate in soup.find_all('a', attrs={'class':'grid_issue'}):
         # Replace the superscript "#" in the comic name
@@ -98,13 +94,13 @@ def SearchComic(Title, Issue):
     array = [comic_link, percentage]
     return(array)
 
-   
+
 # =============================================================================
-#   Read Google sheet into pandas Dataframe
+#   Read Google sheet into pandas Dataframe - Requires oAuth
 # =============================================================================
 gc = gspread.oauth()
-sh = gc.open("Comics")
-worksheet = sh.worksheet("My Collection")
+sh = gc.open(Google_Workbook)
+worksheet = sh.worksheet(Google_Sheet)
 Starting_DF = pd.DataFrame(worksheet.get_all_records())
 sortedsheet = Starting_DF.sort_values(by=['Title','Volume','Issue'])
 
@@ -116,7 +112,7 @@ starting_cols = Starting_DF.shape[1]
 backup = sh.add_worksheet(title="Backup " + rundate, rows=starting_rows, cols=starting_cols)
 backup.update([sortedsheet.columns.values.tolist()] + sortedsheet.values.tolist())
 
-LoginComicsPriceGuide()
+LoginComicsPriceGuide(User_Name, User_Pass)
 
 for index, thisComic in sortedsheet.iterrows():
     try:
@@ -255,8 +251,8 @@ for index, thisComic in sortedsheet.iterrows():
 # =============================================================================
 # with pd.ExcelWriter(Excel_Workbook_Name, mode='w') as writer:  
 #     sortedsheet.to_excel(writer, sheet_name=Excel_Sheet_Name)
-sortedsheet.fillna('', inplace=True)
-worksheet.update([sortedsheet.columns.values.tolist()] + sortedsheet.values.tolist())
+    sortedsheet.fillna('', inplace=True)
+    worksheet.update([sortedsheet.columns.values.tolist()] + sortedsheet.values.tolist())
 # =============================================================================
     
 with open("comics.html",'w') as f:
